@@ -1065,10 +1065,21 @@ class GemmaModel(GemmaPreTrainedModel):
         # (`recording cudagraph tree for symint key 13`, etc.), which is VERY slow. A workaround is `@torch.compiler.disable`, but this prevents using
         # `fullgraph=True`. See more context in https://github.com/huggingface/transformers/pull/29114
 
+        s = datetime.datetime.now()
+
         if self.config._attn_implementation == "flash_attention_2":
             if attention_mask is not None and 0.0 in attention_mask:
                 return attention_mask
             return None
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 10
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
 
         if self.config._attn_implementation == "sdpa":
             # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument,
@@ -1080,6 +1091,15 @@ class GemmaModel(GemmaPreTrainedModel):
                 is_training=self.training,
             ):
                 return None
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 11
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
 
         dtype, device = input_tensor.dtype, input_tensor.device
         min_dtype = torch.finfo(dtype).min
@@ -1093,11 +1113,30 @@ class GemmaModel(GemmaPreTrainedModel):
                 else past_seen_tokens + sequence_length + 1
             )
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 12
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         causal_mask = torch.full((sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device)
         if sequence_length != 1:
             causal_mask = torch.triu(causal_mask, diagonal=1)
         causal_mask *= torch.arange(target_length, device=device) > cache_position.reshape(-1, 1)
         causal_mask = causal_mask[None, None, :, :].expand(input_tensor.shape[0], 1, -1, -1)
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 13
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         if attention_mask is not None:
             causal_mask = causal_mask.clone()  # copy to contiguous memory for in-place edit
             if attention_mask.dim() == 2:
@@ -1117,6 +1156,15 @@ class GemmaModel(GemmaPreTrainedModel):
                     : mask_shape[0], : mask_shape[1], offset : mask_shape[2] + offset, : mask_shape[3]
                 ] = mask_slice
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 14
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         if (
             self.config._attn_implementation == "sdpa"
             and attention_mask is not None
@@ -1126,6 +1174,15 @@ class GemmaModel(GemmaPreTrainedModel):
             # using left padding. This is required by F.scaled_dot_product_attention memory-efficient attention path.
             # Details: https://github.com/pytorch/pytorch/issues/110213
             causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 15
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+
 
         return causal_mask
 
