@@ -1860,18 +1860,19 @@ class GenerationMixin:
         Returns whether there are still unfinished sequences in the device. The existence of unfinished sequences is
         fed through `this_peer_finished`. ZeRO stage 3-friendly.
         """
-        if synced_gpus:
-            # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
-            # The following logic allows an early break if all peers finished generating their sequence
-            this_peer_finished_flag = torch.tensor(0.0 if this_peer_finished else 1.0).to(device)
-            # send 0.0 if we finished, 1.0 otherwise
-            dist.all_reduce(this_peer_finished_flag, op=dist.ReduceOp.SUM)
-            # did all peers finish? the reduced sum will be 0.0 then
-            if this_peer_finished_flag.item() == 0.0:
-                return False
-        elif this_peer_finished:
-            return False
-        return True
+        return ~this_peer_finished
+        # if synced_gpus:
+        #     # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
+        #     # The following logic allows an early break if all peers finished generating their sequence
+        #     this_peer_finished_flag = torch.tensor(0.0 if this_peer_finished else 1.0).to(device)
+        #     # send 0.0 if we finished, 1.0 otherwise
+        #     dist.all_reduce(this_peer_finished_flag, op=dist.ReduceOp.SUM)
+        #     # did all peers finish? the reduced sum will be 0.0 then
+        #     if this_peer_finished_flag.item() == 0.0:
+        #         return False
+        # elif this_peer_finished:
+        #     return False
+        # return True
 
     def contrastive_search(self, *args, **kwargs):
         logger.warning_once(
@@ -2520,7 +2521,7 @@ class GenerationMixin:
 
         # keep track of which sequences are already finished
         batch_size = input_ids.shape[0]
-        this_peer_finished = False
+        this_peer_finished = torch.tensor(False, device=input_ids.device)
         unfinished_sequences = torch.ones(batch_size, dtype=torch.long, device=input_ids.device)
         model_kwargs = self._get_initial_cache_position(input_ids, model_kwargs)
 
@@ -2532,7 +2533,11 @@ class GenerationMixin:
         timing[idx]["timing"] += e
 
         s_while = datetime.datetime.now()
+        step = 0
         while True:
+            step += 1
+            if step > 4095:
+                break
 
             s = datetime.datetime.now()
 
@@ -2545,8 +2550,17 @@ class GenerationMixin:
                 timing[idx] = {"name": "_has_unfinished_sequences", "timing": 0.0}
             timing[idx]["timing"] += e
 
+            s = datetime.datetime.now()
+
             if not not_stop:
                 break
+
+            t = datetime.datetime.now()
+            e = (t - s).total_seconds()
+            idx = 0.1
+            if idx not in timing:
+                timing[idx] = {"name": "if not not_stop", "timing": 0.0}
+            timing[idx]["timing"] += e
 
             s = datetime.datetime.now()
             # prepare model inputs
