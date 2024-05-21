@@ -1090,14 +1090,16 @@ class GemmaModel(GemmaPreTrainedModel):
                 past_key_values_length=past_seen_tokens,
                 is_training=self.training,
             ):
-                return None
-
                 t = datetime.datetime.now()
                 e = (t - s).total_seconds()
                 idx = 11
                 if idx not in timing:
                     timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
                 timing[idx]["timing"] += e
+
+                return None
+
+
 
 
 
