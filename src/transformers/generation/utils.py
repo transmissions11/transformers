@@ -2552,8 +2552,8 @@ class GenerationMixin:
 
             s = datetime.datetime.now()
 
-            if not not_stop:
-                break
+            # if not not_stop:
+            #     break
 
             t = datetime.datetime.now()
             e = (t - s).total_seconds()
