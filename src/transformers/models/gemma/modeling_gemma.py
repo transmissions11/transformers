@@ -861,6 +861,9 @@ class GemmaModel(GemmaPreTrainedModel):
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
+
+        s = datetime.datetime.now()
+
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
@@ -912,6 +915,13 @@ class GemmaModel(GemmaPreTrainedModel):
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 2
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: Before for decoder_layer in self.layers", "timing": 0.0}
+        timing[idx]["timing"] += e
+
         s = datetime.datetime.now()
 
         for decoder_layer in self.layers:
@@ -955,6 +965,8 @@ class GemmaModel(GemmaPreTrainedModel):
             timing[idx] = {"name": "GemmaModel: for decoder_layer in self.layers", "timing": 0.0}
         timing[idx]["timing"] += e
 
+        s = datetime.datetime.now()
+
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
@@ -966,6 +978,16 @@ class GemmaModel(GemmaPreTrainedModel):
             next_cache = (
                 next_decoder_cache.to_legacy_cache() if isinstance(next_decoder_cache, Cache) else next_decoder_cache
             )
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 3
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: After for decoder_layer in self.layers", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         if not return_dict:
             return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
         return BaseModelOutputWithPast(
