@@ -481,6 +481,7 @@ class EosTokenCriteria(StoppingCriteria):
 
     @add_start_docstrings(STOPPING_CRITERIA_INPUTS_DOCSTRING)
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> torch.BoolTensor:
+        self.eos_token_id = self.eos_token_id.to(input_ids.device)
         if input_ids.device.type == "mps":
             # https://github.com/pytorch/pytorch/issues/77764#issuecomment-2067838075
             is_done = (
