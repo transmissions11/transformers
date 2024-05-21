@@ -304,7 +304,19 @@ class AttentionMaskConverter:
 
         s = datetime.datetime.now()
 
-        if (is_training or not is_tracing) and torch.all(attention_mask == 1):
+        o = (is_training or not is_tracing) and torch.all(attention_mask == 1)
+
+        if o:
+
+            t = datetime.datetime.now()
+            e = (t - s).total_seconds()
+            idx = 3
+            if idx not in timing:
+                timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+            timing[idx]["timing"] += e
+
+            s = datetime.datetime.now()
+
             if query_length == 1 or key_value_length == query_length:
                 # For query_length == 1, causal attention and bi-directional attention are the same.
                 ignore_causal_mask = True
@@ -316,7 +328,7 @@ class AttentionMaskConverter:
 
         t = datetime.datetime.now()
         e = (t - s).total_seconds()
-        idx = 2
+        idx = 4
         if idx not in timing:
             timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
         timing[idx]["timing"] += e
