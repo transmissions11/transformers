@@ -265,6 +265,13 @@ class AttentionMaskConverter:
 
         ignore_causal_mask = False
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 0
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
         # if attention_mask is None:
         #     # TODO: When tracing with TorchDynamo with fullgraph=True, the model is recompiled depending on the input shape, thus SDPA's `is_causal` argument is rightfully updated (see https://gist.github.com/fxmarty/1313f39037fc1c112508989628c57363). However, when using `torch.export` or
         #     # or `torch.onnx.dynamo_export`, we must pass an example input, and `is_causal` behavior is hard-coded. If a user exports a model with q_len > 1, the exported model will hard-code `is_causal=True` which is in general wrong (see https://github.com/pytorch/pytorch/issues/108108).
@@ -278,13 +285,26 @@ class AttentionMaskConverter:
         #     ):
         #         ignore_causal_mask = True
         # if sliding_window is None or key_value_length < sliding_window:
+
+        s = datetime.datetime.now()
+
         if len(attention_mask.shape) == 4:
             expected_shape = (batch_size, 1, query_length, key_value_length)
             if tuple(attention_mask.shape) != expected_shape:
                 raise ValueError(
                     f"Incorrect 4D attention_mask shape: {tuple(attention_mask.shape)}; expected: {expected_shape}."
                 )
-        elif (is_training or not is_tracing) and torch.all(attention_mask == 1):
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 1
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
+        if (is_training or not is_tracing) and torch.all(attention_mask == 1):
             if query_length == 1 or key_value_length == query_length:
                 # For query_length == 1, causal attention and bi-directional attention are the same.
                 ignore_causal_mask = True
@@ -294,14 +314,13 @@ class AttentionMaskConverter:
             # Reference: https://github.com/pytorch/pytorch/issues/108108
             # TODO: maybe revisit this with https://github.com/pytorch/pytorch/pull/114823 in PyTorch 2.3.
 
-
         t = datetime.datetime.now()
         e = (t - s).total_seconds()
-        idx = 0
+        idx = 2
         if idx not in timing:
             timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
         timing[idx]["timing"] += e
-                    
+
         return ignore_causal_mask
 
 
