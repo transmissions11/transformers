@@ -16,6 +16,8 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 
+timing = {}
+import datetime
 
 @dataclass
 class AttentionMaskConverter:
@@ -250,6 +252,8 @@ class AttentionMaskConverter:
         allowing to dispatch to the flash attention kernel (that can otherwise not be used if a custom `attn_mask` is passed).
         """
 
+        s = datetime.datetime.now()
+
         batch_size, query_length = inputs_embeds.shape[0], inputs_embeds.shape[1]
         key_value_length = query_length + past_key_values_length
 
@@ -290,6 +294,14 @@ class AttentionMaskConverter:
                 # Reference: https://github.com/pytorch/pytorch/issues/108108
                 # TODO: maybe revisit this with https://github.com/pytorch/pytorch/pull/114823 in PyTorch 2.3.
 
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 0
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
+                    
         return ignore_causal_mask
 
 
