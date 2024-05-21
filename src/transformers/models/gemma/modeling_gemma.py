@@ -882,8 +882,19 @@ class GemmaModel(GemmaPreTrainedModel):
             )
             use_cache = False
 
+        s = datetime.datetime.now()
+
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 4
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: inputs_embeds", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
 
         past_seen_tokens = 0
         if use_cache:  # kept for BC (cache positions)
@@ -891,15 +902,51 @@ class GemmaModel(GemmaPreTrainedModel):
                 past_key_values = DynamicCache.from_legacy_cache(past_key_values)
             past_seen_tokens = past_key_values.get_seq_length()
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 5
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: past_seen_tokens", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         if cache_position is None:
             cache_position = torch.arange(
                 past_seen_tokens, past_seen_tokens + inputs_embeds.shape[1], device=inputs_embeds.device
             )
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 6
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: cache_position", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         if position_ids is None:
             position_ids = cache_position.unsqueeze(0)
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 7
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: position_ids", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         causal_mask = self._update_causal_mask(attention_mask, inputs_embeds, cache_position, past_seen_tokens)
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 8
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: causal_mask", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
 
         # embed positions
         hidden_states = inputs_embeds
@@ -910,17 +957,26 @@ class GemmaModel(GemmaPreTrainedModel):
         normalizer = torch.tensor(self.config.hidden_size**0.5, dtype=hidden_states.dtype)
         hidden_states = hidden_states * normalizer
 
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 9
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: hidden_states = hidden_states * normalizer", "timing": 0.0}
+        timing[idx]["timing"] += e
+
+        s = datetime.datetime.now()
+
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
 
-        t = datetime.datetime.now()
-        e = (t - s).total_seconds()
-        idx = 2
-        if idx not in timing:
-            timing[idx] = {"name": "GemmaModel: Before for decoder_layer in self.layers", "timing": 0.0}
-        timing[idx]["timing"] += e
+        # t = datetime.datetime.now()
+        # e = (t - s).total_seconds()
+        # idx = 2
+        # if idx not in timing:
+        #     timing[idx] = {"name": "GemmaModel: Before for decoder_layer in self.layers", "timing": 0.0}
+        # timing[idx]["timing"] += e
 
         s = datetime.datetime.now()
 
