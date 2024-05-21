@@ -14,6 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ PyTorch Gemma model."""
+import datetime
+
+timing = {}
 
 import math
 import warnings
@@ -1119,6 +1122,8 @@ class GemmaForCausalLM(GemmaPreTrainedModel):
         )
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
+        s = datetime
+
         # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
         outputs = self.model(
             input_ids=input_ids,
@@ -1132,6 +1137,13 @@ class GemmaForCausalLM(GemmaPreTrainedModel):
             return_dict=return_dict,
             cache_position=cache_position,
         )
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 0
+        if idx not in timing:
+            timing[idx] = {"name": "self.model", "timing": 0.0}
+        timing[idx]["timing"] += e
 
         hidden_states = outputs[0]
         logits = self.lm_head(hidden_states)
