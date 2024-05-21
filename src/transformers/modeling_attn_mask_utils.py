@@ -265,19 +265,19 @@ class AttentionMaskConverter:
 
         ignore_causal_mask = False
 
-        if attention_mask is None:
-            # TODO: When tracing with TorchDynamo with fullgraph=True, the model is recompiled depending on the input shape, thus SDPA's `is_causal` argument is rightfully updated (see https://gist.github.com/fxmarty/1313f39037fc1c112508989628c57363). However, when using `torch.export` or
-            # or `torch.onnx.dynamo_export`, we must pass an example input, and `is_causal` behavior is hard-coded. If a user exports a model with q_len > 1, the exported model will hard-code `is_causal=True` which is in general wrong (see https://github.com/pytorch/pytorch/issues/108108).
-            # Thus, we only set `ignore_causal_mask = True` if the model is set to training.
-            #
-            # Besides, jit.trace can not handle the `q_len > 1` condition for `is_causal` (`TypeError: scaled_dot_product_attention(): argument 'is_causal' must be bool, not Tensor`).
-            if (
-                (is_training or not is_tracing)
-                and (query_length == 1 or key_value_length == query_length)
-                and (sliding_window is None or key_value_length < sliding_window)
-            ):
-                ignore_causal_mask = True
-        elif sliding_window is None or key_value_length < sliding_window:
+        # if attention_mask is None:
+        #     # TODO: When tracing with TorchDynamo with fullgraph=True, the model is recompiled depending on the input shape, thus SDPA's `is_causal` argument is rightfully updated (see https://gist.github.com/fxmarty/1313f39037fc1c112508989628c57363). However, when using `torch.export` or
+        #     # or `torch.onnx.dynamo_export`, we must pass an example input, and `is_causal` behavior is hard-coded. If a user exports a model with q_len > 1, the exported model will hard-code `is_causal=True` which is in general wrong (see https://github.com/pytorch/pytorch/issues/108108).
+        #     # Thus, we only set `ignore_causal_mask = True` if the model is set to training.
+        #     #
+        #     # Besides, jit.trace can not handle the `q_len > 1` condition for `is_causal` (`TypeError: scaled_dot_product_attention(): argument 'is_causal' must be bool, not Tensor`).
+        #     if (
+        #         (is_training or not is_tracing)
+        #         and (query_length == 1 or key_value_length == query_length)
+        #         and (sliding_window is None or key_value_length < sliding_window)
+        #     ):
+        #         ignore_causal_mask = True
+        if sliding_window is None or key_value_length < sliding_window:
             if len(attention_mask.shape) == 4:
                 expected_shape = (batch_size, 1, query_length, key_value_length)
                 if tuple(attention_mask.shape) != expected_shape:
