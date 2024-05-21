@@ -1082,6 +1082,9 @@ class GemmaModel(GemmaPreTrainedModel):
         s = datetime.datetime.now()
 
         if self.config._attn_implementation == "sdpa":
+
+            return None
+
             # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument,
             # in order to dispatch on Flash Attention 2.
             if AttentionMaskConverter._ignore_causal_mask_sdpa(
