@@ -912,6 +912,8 @@ class GemmaModel(GemmaPreTrainedModel):
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
 
+        s = datetime.datetime.now()
+
         for decoder_layer in self.layers:
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
@@ -945,6 +947,13 @@ class GemmaModel(GemmaPreTrainedModel):
 
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
+
+        t = datetime.datetime.now()
+        e = (t - s).total_seconds()
+        idx = 1
+        if idx not in timing:
+            timing[idx] = {"name": "GemmaModel: for decoder_layer in self.layers", "timing": 0.0}
+        timing[idx]["timing"] += e
 
         hidden_states = self.norm(hidden_states)
 
@@ -1142,7 +1151,7 @@ class GemmaForCausalLM(GemmaPreTrainedModel):
         e = (t - s).total_seconds()
         idx = 0
         if idx not in timing:
-            timing[idx] = {"name": "self.model", "timing": 0.0}
+            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
         timing[idx]["timing"] += e
 
         hidden_states = outputs[0]
