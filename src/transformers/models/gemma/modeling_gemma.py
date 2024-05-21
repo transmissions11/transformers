@@ -1092,12 +1092,15 @@ class GemmaModel(GemmaPreTrainedModel):
             ):
                 return None
 
-        t = datetime.datetime.now()
-        e = (t - s).total_seconds()
-        idx = 11
-        if idx not in timing:
-            timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
-        timing[idx]["timing"] += e
+                t = datetime.datetime.now()
+                e = (t - s).total_seconds()
+                idx = 11
+                if idx not in timing:
+                    timing[idx] = {"name": "GemmaForCausalLM: self.model", "timing": 0.0}
+                timing[idx]["timing"] += e
+
+
+
 
         s = datetime.datetime.now()
 
